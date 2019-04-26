@@ -8,3 +8,9 @@ except ImportError:
             version_scheme="post-release", local_scheme="node-and-date")
     except (ImportError, LookupError):
         pass
+
+
+from ._mplinorm import install
+
+
+__all__ = ["install"]
