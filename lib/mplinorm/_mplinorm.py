@@ -52,7 +52,12 @@ def hist_bins(sm):
     return bins
 
 
-def install(artist):
+def install(artist=None):
+
+    if artist is None:
+        for num in plt.get_fignums():
+            install(plt.figure(num))
+        return
 
     def on_button_press(event):
         if event.button != 3:  # Right-click.
