@@ -59,7 +59,7 @@ def install(artist=None):
             install(plt.figure(num))
         return
 
-    def on_button_press(event):
+    def on_button_release(event):
         if event.button != 3:  # Right-click.
             return
 
@@ -95,4 +95,4 @@ def install(artist=None):
         menu.addAction("Norm", edit_norm)
         menu.exec(event.guiEvent.globalPos())
 
-    get_canvas(artist).mpl_connect("button_press_event", on_button_press)
+    get_canvas(artist).mpl_connect("button_release_event", on_button_release)
