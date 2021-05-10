@@ -44,9 +44,10 @@ def hist_bins(sm):
         data = np.log(data)
     bins = np.histogram_bin_edges(
         data, "auto", np.log(sm.get_clim()) if log else sm.get_clim())
-    if data.dtype.kind in "iu":
-        db = max(round(bins[1] - bins[0]), 1)
-        bins = np.arange(data.min(), data.max() + db, db)
+    binsize = bins[1] - bins[0]
+    if data.dtype.kind in "iu":  # not log.
+        binsize = max(round(binsize), 1)
+    bins = np.arange(data.min(), data.max() + binsize, binsize)
     if log:
         bins = np.exp(bins)
     return bins
@@ -73,7 +74,6 @@ def install(artist=None):
             except ValueError:
                 raise NotImplementedError from None
             array = im.get_array().ravel()
-            clim0 = im.get_clim()
             sub_ax = plt.figure().subplots()
             h = sub_ax.hist(array, hist_bins(im), histtype="stepfilled")
             if isinstance(im.norm, mpl.colors.LogNorm):
@@ -81,13 +81,15 @@ def install(artist=None):
 
             def on_select(vmin, vmax):
                 if vmin == vmax:
-                    im.set_clim(clim0)
+                    im.set_clim((array.min(), array.max()))
                 else:
                     im.set_clim((vmin, vmax))
                 im.figure.canvas.draw()
 
-            sub_ax.__ss = SpanSelector(
+            ss = sub_ax.__ss = SpanSelector(
                 sub_ax, on_select, "horizontal", useblit=True, span_stays=True)
+            ss.stay_rect.set(x=im.norm.vmin, width=im.norm.vmax - im.norm.vmin,
+                             visible=True)
 
             plt.show(block=False)
 
