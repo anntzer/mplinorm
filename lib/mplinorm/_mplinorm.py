@@ -2,7 +2,6 @@ import functools
 
 import matplotlib as mpl
 from matplotlib import pyplot as plt
-from matplotlib.backends.qt_compat import QtWidgets
 from matplotlib.widgets import SpanSelector
 import numpy as np
 
@@ -68,7 +67,7 @@ def install(artist=None):
         if not images:
             return
 
-        def edit_norm():
+        def edit_norm(_arg=None):  # Only some backends pass in an argument.
             try:
                 im, = images
             except ValueError:
@@ -93,8 +92,37 @@ def install(artist=None):
 
             plt.show(block=False)
 
-        menu = QtWidgets.QMenu()
-        menu.addAction("Norm", edit_norm)
-        menu.exec(event.guiEvent.globalPos())
+        gui_event = event.guiEvent
+        pkg = type(gui_event).__module__.split(".")[0]
+
+        if pkg == "gi":
+            from gi.repository import Gtk
+            menu = Gtk.Menu()
+            item = Gtk.MenuItem.new_with_label("Norm")
+            menu.append(item)
+            item.connect("activate", edit_norm)
+            item.show()
+            menu.popup_at_pointer(gui_event)
+        elif pkg.startswith(("PyQt", "PySide")):
+            from matplotlib.backends.qt_compat import QtWidgets
+            menu = QtWidgets.QMenu()
+            menu.addAction("Norm", edit_norm)
+            menu.exec(gui_event.globalPos())
+        elif pkg == "tkinter":
+            from tkinter import Menu
+            menu = Menu(gui_event.widget, tearoff=0)
+            menu.add_command(label="Norm", command=edit_norm)
+            try:
+                menu.tk_popup(gui_event.x_root, gui_event.y_root)
+            finally:
+                menu.grab_release()
+        elif pkg == "wx":
+            import wx
+            menu = wx.Menu()
+            item = menu.Append(wx.ID_ANY, "Norm")
+            gui_event.EventObject.Bind(wx.EVT_MENU, edit_norm, id=item.Id)
+            gui_event.EventObject.PopupMenu(menu)
+        else:
+            raise NotImplementedError("The current backend is not supported")
 
     get_canvas(artist).mpl_connect("button_release_event", on_button_release)
