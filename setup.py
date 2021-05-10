@@ -1,31 +1,29 @@
-from setupext import find_namespace_packages, setup
+import ast
+import tokenize
+
+from setuptools import setup
 
 
 setup(
     name="mplinorm",
-    description="",
-    long_description=open("README.rst", encoding="utf-8").read(),
+    description="Interactive contrast adjustment for Matplotlib images",
+    long_description=ast.get_docstring(
+        ast.parse(tokenize.open("lib/mplinorm.py").read())),
     author="Antony Lee",
     author_email="",
     url="",
-    license="MIT",
+    license="zlib",
     classifiers=[],
-    cmdclass={},
-    py_modules=[],
-    packages=find_namespace_packages("lib"),
+    py_modules=["mplinorm"],
     package_dir={"": "lib"},
     package_data={},
     python_requires="",
     setup_requires=["setuptools_scm"],
-    use_scm_version=lambda: {  # xref __init__.py
+    use_scm_version=lambda: {
         "version_scheme": "post-release",
         "local_scheme": "node-and-date",
-        "write_to": "lib/mplinorm/_version.py",
     },
     install_requires=[
+        "matplotlib",
     ],
-    entry_points={
-        "console_scripts": [],
-        "gui_scripts": [],
-    },
 )

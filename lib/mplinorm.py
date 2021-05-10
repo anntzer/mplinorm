@@ -1,4 +1,49 @@
-import functools
+"""
+Interactive contrast adjustment for Matplotlib images
+=====================================================
+
+mplinorm provides an interactive contrast adjustment window for Matplotlib_
+images, similar to ImageJ_'s Brightness/Contrast adjustment window.
+
+Call ``mplinorm.install(image_or_axes_or_figure)`` to install a right-click
+popup menu on an image (actually a ScalarMappable), all images on an axes, or
+all images on a figure; or ``mplinorm.install()`` to install the popup menu on
+all images on all pyplot-managed figures.
+
+Try e.g.::
+
+    from matplotlib import pyplot as plt
+    import mplinorm
+    import numpy as np
+
+    plt.figure().add_subplot().imshow(np.random.randn(100, 100))
+    mplinorm.install()
+
+and right-click on the figure.
+
+.. _Matplotlib: https://matplotlib.org
+.. _ImageJ: https://imagej.github.io
+
+-------------------------------------------------------------------------------
+
+Copyright (c) 2019-present Antony Lee
+
+This software is provided 'as-is', without any express or implied
+warranty. In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+"""
 
 import matplotlib as mpl
 from matplotlib import pyplot as plt
@@ -6,37 +51,36 @@ from matplotlib.widgets import SpanSelector
 import numpy as np
 
 
-def get_canvas(artist):
+def _get_canvas(artist):
     return (artist.canvas if isinstance(artist, mpl.figure.Figure)
             else artist.figure.canvas)
 
 
-def is_normed_image(image):
+def _is_normed_image(image):
     return image.get_array().ndim == 2
 
 
-def image_contains(image, event):
+def _image_contains(image, event):
     return event.inaxes is image.axes and image.contains(event)[0]
 
 
-def iter_overlapping_normed_images(artist, event):
-    canvas = get_canvas(artist)
+def _iter_overlapping_normed_images(artist, event):
     if isinstance(artist, mpl.figure.Figure):
         for im in artist.images:
-            if is_normed_image(im) and image_contains(im, event):
+            if _is_normed_image(im) and _image_contains(im, event):
                 yield im
         for ax in artist.axes:
-            yield from iter_overlapping_normed_images(ax, event)
+            yield from _iter_overlapping_normed_images(ax, event)
     elif isinstance(artist, mpl.axes.Axes):
         for im in artist.images:
-            if is_normed_image(im) and image_contains(im, event):
+            if _is_normed_image(im) and _image_contains(im, event):
                 yield im
     elif (isinstance(artist, mpl.image._ImageBase)
-            and is_normed_image(artist) and image_contains(artist, event)):
+            and _is_normed_image(artist) and _image_contains(artist, event)):
         yield artist
 
 
-def hist_bins(sm):
+def _hist_bins(sm):
     data = sm.get_array()
     log = isinstance(sm.norm, mpl.colors.LogNorm)
     if log:
@@ -53,6 +97,11 @@ def hist_bins(sm):
 
 
 def install(artist=None):
+    """
+    Install an mplinorm menu on a ScalarMappable, all images on an axes,
+    all images on a figure, or (if *artist* is unset) all images on all
+    pyplot-managed figures.
+    """
 
     if artist is None:
         for num in plt.get_fignums():
@@ -63,7 +112,7 @@ def install(artist=None):
         if event.button != 3:  # Right-click.
             return
 
-        images = [*iter_overlapping_normed_images(artist, event)]
+        images = [*_iter_overlapping_normed_images(artist, event)]
         if not images:
             return
 
@@ -74,7 +123,7 @@ def install(artist=None):
                 raise NotImplementedError from None
             array = im.get_array().ravel()
             sub_ax = plt.figure().subplots()
-            h = sub_ax.hist(array, hist_bins(im), histtype="stepfilled")
+            sub_ax.hist(array, _hist_bins(im), histtype="stepfilled")
             if isinstance(im.norm, mpl.colors.LogNorm):
                 sub_ax.set(xscale="log")
 
@@ -125,4 +174,4 @@ def install(artist=None):
         else:
             raise NotImplementedError("The current backend is not supported")
 
-    get_canvas(artist).mpl_connect("button_release_event", on_button_release)
+    _get_canvas(artist).mpl_connect("button_release_event", on_button_release)
