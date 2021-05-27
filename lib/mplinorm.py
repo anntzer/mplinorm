@@ -45,10 +45,16 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 """
 
+import functools
+from weakref import WeakKeyDictionary
+
 import matplotlib as mpl
 from matplotlib import pyplot as plt
 from matplotlib.widgets import SpanSelector
 import numpy as np
+
+
+_selectors = WeakKeyDictionary()
 
 
 def _get_canvas(artist):
@@ -117,27 +123,28 @@ def install(artist=None):
             return
 
         def edit_norm(_arg=None):  # Only some backends pass in an argument.
-            try:
-                im, = images
-            except ValueError:
-                raise NotImplementedError from None
-            array = im.get_array().ravel()
-            sub_ax = plt.figure().subplots()
-            sub_ax.hist(array, _hist_bins(im), histtype="stepfilled")
-            if isinstance(im.norm, mpl.colors.LogNorm):
-                sub_ax.set(xscale="log")
+            axs = plt.figure().subplots(len(images), 1, squeeze=False)[:, 0]
+            for ax, image in zip(axs, images):
+                ax.hist(image.get_array().ravel(), _hist_bins(image),
+                        histtype="stepfilled")
+                if isinstance(image.norm, mpl.colors.LogNorm):
+                    ax.set(xscale="log")
 
-            def on_select(vmin, vmax):
-                if vmin == vmax:
-                    im.set_clim((array.min(), array.max()))
-                else:
-                    im.set_clim((vmin, vmax))
-                im.figure.canvas.draw()
+                def on_select(image, vmin, vmax):
+                    array = image.get_array()
+                    if vmin == vmax:
+                        image.set_clim((array.min(), array.max()))
+                    else:
+                        image.set_clim((vmin, vmax))
+                    image.figure.canvas.draw()
 
-            ss = sub_ax.__ss = SpanSelector(
-                sub_ax, on_select, "horizontal", useblit=True, span_stays=True)
-            ss.stay_rect.set(x=im.norm.vmin, width=im.norm.vmax - im.norm.vmin,
-                             visible=True)
+                ss = SpanSelector(
+                    ax, functools.partial(on_select, image), "horizontal",
+                    useblit=True, span_stays=True)
+                ss.stay_rect.set(
+                    x=image.norm.vmin, width=image.norm.vmax - image.norm.vmin,
+                    visible=True)
+                _selectors.setdefault(ax, []).append(ss)
 
             plt.show(block=False)
 
