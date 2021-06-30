@@ -45,7 +45,6 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 """
 
-import functools
 from weakref import WeakKeyDictionary
 
 import matplotlib as mpl
@@ -130,22 +129,25 @@ def install(artist=None):
                 if isinstance(image.norm, mpl.colors.LogNorm):
                     ax.set(xscale="log")
 
-                def on_select(image, vmin, vmax):
-                    array = image.get_array()
+                def on_select(vmin, vmax, *, _image=image):
+                    array = _image.get_array()
                     if vmin == vmax:
-                        image.set_clim((array.min(), array.max()))
+                        _image.set_clim((array.min(), array.max()))
                     else:
-                        image.set_clim((vmin, vmax))
-                    image.figure.canvas.draw()
+                        _image.set_clim((vmin, vmax))
+                    _image.figure.canvas.draw()
 
-                ss = SpanSelector(
-                    ax, functools.partial(on_select, image), "horizontal",
-                    useblit=True, span_stays=True)
-                ss.stay_rect.set(
-                    x=image.norm.vmin, width=image.norm.vmax - image.norm.vmin,
-                    visible=True)
+                if hasattr(SpanSelector, "extents"):
+                    ss = SpanSelector(ax, on_select, "horizontal",
+                                      useblit=True, interactive=True)
+                    ss.extents = (image.norm.vmin, image.norm.vmax)
+                else:
+                    ss = SpanSelector(ax, on_select, "horizontal",
+                                      useblit=True, span_stays=True)
+                    ss.stay_rect.set(x=image.norm.vmin,
+                                     width=image.norm.vmax - image.norm.vmin,
+                                     visible=True)
                 _selectors.setdefault(ax, []).append(ss)
-
             plt.show(block=False)
 
         gui_event = event.guiEvent
