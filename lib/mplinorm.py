@@ -90,12 +90,15 @@ def _hist_bins(sm):
     log = isinstance(sm.norm, mpl.colors.LogNorm)
     if log:
         data = np.log(data)
+    # Infer the binsize from the clim, then bin the full data range.
     bins = np.histogram_bin_edges(
         data, "auto", np.log(sm.get_clim()) if log else sm.get_clim())
     binsize = bins[1] - bins[0]
     if data.dtype.kind in "iu":  # not log.
         binsize = max(round(binsize), 1)
-    bins = np.arange(data.min(), data.max() + binsize, binsize)
+        bins = np.arange(data.min(), data.max() + binsize + .5, binsize) - .5
+    else:
+        bins = np.arange(data.min(), data.max() + binsize, binsize)
     if log:
         bins = np.exp(bins)
     return bins
@@ -124,10 +127,13 @@ def install(artist=None):
         def edit_norm(_arg=None):  # Only some backends pass in an argument.
             axs = plt.figure().subplots(len(images), 1, squeeze=False)[:, 0]
             for ax, image in zip(axs, images):
-                ax.hist(image.get_array().ravel(), _hist_bins(image),
+                array = image.get_array()
+                ax.hist(array.ravel(), _hist_bins(image),
                         histtype="stepfilled")
                 if isinstance(image.norm, mpl.colors.LogNorm):
                     ax.set(xscale="log")
+                elif array.dtype.kind in "iu":  # not log.
+                    ax.xaxis.get_major_locator().set_params(integer=True)
 
                 def on_select(vmin, vmax, *, _image=image):
                     array = _image.get_array()
