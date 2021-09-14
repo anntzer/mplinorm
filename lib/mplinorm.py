@@ -24,6 +24,10 @@ and right-click on the figure.
 .. _Matplotlib: https://matplotlib.org
 .. _ImageJ: https://imagej.github.io
 
+If the ``MPLINORM`` environment variable is set to a non-empty value *when the
+Python process starts*, then any mplinorm will be automatically installed on
+any Figure the first time it is drawn.
+
 -------------------------------------------------------------------------------
 
 Copyright (c) 2019-present Antony Lee
