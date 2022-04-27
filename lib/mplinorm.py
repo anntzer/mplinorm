@@ -172,10 +172,13 @@ def install(artist=None):
             item.show()
             menu.popup_at_pointer(gui_event)
         elif pkg.startswith(("PyQt", "PySide")):
-            from matplotlib.backends.qt_compat import QtWidgets
+            from matplotlib.backends.qt_compat import QtCore, QtWidgets
             menu = QtWidgets.QMenu()
             menu.addAction("Norm", edit_norm)
-            menu.exec(gui_event.globalPos())
+            point = (gui_event.globalPosition().toPoint()
+                     if QtCore.qVersion().split(".")[0] == "6"
+                     else gui_event.globalPos())
+            menu.exec(point)
         elif pkg == "tkinter":
             from tkinter import Menu
             menu = Menu(gui_event.widget, tearoff=0)
