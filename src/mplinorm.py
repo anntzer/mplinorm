@@ -50,6 +50,7 @@ freely, subject to the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 """
 
+import os
 from weakref import WeakKeyDictionary
 
 import matplotlib as mpl
@@ -206,7 +207,7 @@ def hook(figure):
     """
 
     if not os.environ.get("MPLINORM"):
-        continue
+        return
 
     def register(_):
         install(figure)
