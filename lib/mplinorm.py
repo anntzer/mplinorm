@@ -24,9 +24,10 @@ and right-click on the figure.
 .. _Matplotlib: https://matplotlib.org
 .. _ImageJ: https://imagej.github.io
 
-If the ``MPLINORM`` environment variable is set to a non-empty value *when the
-Python process starts*, then any mplinorm will be automatically installed on
-any Figure the first time it is drawn.
+For Matplotlib 3.7 or higher, mplinorm can be registered into
+``rcParams["figure.hooks"]``.  In that case, if the ``MPLINORM`` environment
+variable is set to (a non-empty value), then mplinorm will be automatically
+installed on any Figure the first time it is drawn.
 
 -------------------------------------------------------------------------------
 
@@ -197,3 +198,18 @@ def install(artist=None):
             raise NotImplementedError("The current backend is not supported")
 
     _get_canvas(artist).mpl_connect("button_release_event", on_button_release)
+
+
+def hook(figure):
+    """
+    A hook function that can be registered into ``rcParams["figure.hooks"]``.
+    """
+
+    if not os.environ.get("MPLINORM"):
+        continue
+
+    def register(_):
+        install(figure)
+        figure.canvas.mpl_disconnect(cid)
+
+    cid = figure.canvas.mpl_connect("draw_event", register)
